@@ -35,7 +35,7 @@ from ase import Atoms
 from ase.io import read, write
 from ase.build import make_supercell
 from ase.geometry import cell_to_cellpar
-from ase.neighborlist import build_neighbor_list, natural_cutoffs
+from ase.neighborlist import build_neighbor_list
 import argparse
 import sys
 
@@ -114,27 +114,24 @@ def read_unit_cell(input_file):
         sys.exit(1)
 
 
-def create_cylinder_block(atoms0, a_x, a_y, a_z, R_target, r_cyl, overlap_tolerance):
+def create_cylinder_block(atoms0, a_x, a_y, a_z, L_target, r_cyl, overlap_tolerance):
     """
     Create a supercell block large enough to form a cylinder.
     
     The block is sized to:
-    - Cover the circumference 2π*R_target in the x-direction (plus overlap zone)
+    - Cover the circumference L_target in the x-direction (plus overlap zone)
     - Extend at least 2*r_cyl in y and z directions
     
     Parameters:
         atoms0 (Atoms): Unit cell structure
         a_x, a_y, a_z (float): Lattice parameters in Å
-        R_target (float): Target major radius in Å
+        L_target (float): Target circumference (2π*R_target) in Å
         r_cyl (float): Cylinder radius in Å
         overlap_tolerance (float): Overlap zone width in Å
     
     Returns:
         Atoms: Supercell block structure
     """
-    # Calculate target circumference
-    L_target = 2.0 * np.pi * R_target
-    
     # Calculate repetitions needed
     # For x: need to cover L_target plus overlap zone
     nx = max(2, int(np.ceil((L_target + overlap_tolerance) / a_x)))
@@ -284,10 +281,10 @@ def remove_duplicate_atoms(symbols, positions, overlap_tolerance):
     print(f"  Overlap tolerance: {overlap_tolerance:.3f} Å")
     
     # Build neighbor list with cutoff based on overlap_tolerance
-    # This ensures we find all atom pairs within the overlap distance
+    # Use overlap_tolerance as cutoff to ensure we find all potential duplicates
     try:
         # Create uniform cutoffs based on overlap_tolerance for all atoms
-        cutoffs = [overlap_tolerance / 2.0] * len(temp_atoms)
+        cutoffs = [overlap_tolerance] * len(temp_atoms)
         nl = build_neighbor_list(temp_atoms, cutoffs=cutoffs, skin=0.0)
         
         # Find atoms that are too close (duplicates)
@@ -406,26 +403,28 @@ def generate_toroid(input_file='Li2O2.cif',
     # Step 1: Read unit cell
     atoms0, (a_x, a_y, a_z) = read_unit_cell(input_file)
     
-    # Step 2: Create cylinder block
+    # Step 2: Calculate target circumference (used by multiple steps)
     L_target = 2.0 * np.pi * R_target
-    block = create_cylinder_block(atoms0, a_x, a_y, a_z, R_target, r_cyl, overlap_tolerance)
     
-    # Step 3: Extract cylindrical structure
+    # Step 3: Create cylinder block
+    block = create_cylinder_block(atoms0, a_x, a_y, a_z, L_target, r_cyl, overlap_tolerance)
+    
+    # Step 4: Extract cylindrical structure
     cyl_symbols, cyl_positions = extract_cylinder(block, r_cyl)
     
-    # Step 4: Map to toroid
+    # Step 5: Map to toroid
     toroid_symbols, toroid_positions = map_cylinder_to_toroid(
         cyl_symbols, cyl_positions, R_target, r_cyl, L_target, overlap_tolerance
     )
     
-    # Step 5: Remove duplicates at seam
+    # Step 6: Remove duplicates at seam
     toroid = remove_duplicate_atoms(toroid_symbols, toroid_positions, overlap_tolerance)
     
-    # Step 6: Optional pre-relaxation
+    # Step 7: Optional pre-relaxation
     if do_prerelax:
         toroid = prerelax_structure(toroid, lj_epsilon, lj_sigma, prerelax_steps)
     
-    # Step 7: Save output
+    # Step 8: Save output
     write(output_file, toroid)
     print(f"\n{'='*80}")
     print(f"✓ SUCCESS: Toroid saved to {output_file}")
