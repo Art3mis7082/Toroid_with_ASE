@@ -304,11 +304,12 @@ def remove_duplicate_atoms(symbols, positions, overlap_tolerance):
                     # Keep lower index, delete higher index
                     atoms_to_delete.add(max(i, j))
         
-        # Remove marked atoms
+        # Remove marked atoms efficiently
         if atoms_to_delete:
             print(f"  Duplicates found: {len(atoms_to_delete)}")
-            # Delete in reverse order to maintain indices
-            del temp_atoms[sorted(list(atoms_to_delete), reverse=True)]
+            # Create new Atoms object with only kept atoms for efficiency
+            keep_indices = [i for i in range(len(temp_atoms)) if i not in atoms_to_delete]
+            temp_atoms = temp_atoms[keep_indices]
         else:
             print(f"  No duplicates found")
     
@@ -346,8 +347,8 @@ def prerelax_structure(atoms, epsilon, sigma, max_steps):
         from ase.calculators.lj import LennardJones
         from ase.optimize import BFGS
         
-        # Set up calculator
-        calc = LennardJones(epsilon=epsilon, sigma=sigma, rc=3*sigma)
+        # Set up calculator with conservative cutoff radius
+        calc = LennardJones(epsilon=epsilon, sigma=sigma, rc=2.5*sigma)
         atoms.calc = calc
         
         # Run optimization
@@ -392,6 +393,18 @@ def generate_toroid(input_file='Li2O2.cif',
     print("="*80)
     print("TOROID GENERATOR - ASE")
     print("="*80)
+    
+    # Validate input parameters
+    if R_target <= 0:
+        print(f"Error: Major radius (R_target) must be positive, got {R_target}")
+        sys.exit(1)
+    if r_cyl <= 0:
+        print(f"Error: Minor radius (r_cyl) must be positive, got {r_cyl}")
+        sys.exit(1)
+    if overlap_tolerance <= 0:
+        print(f"Error: Overlap tolerance must be positive, got {overlap_tolerance}")
+        sys.exit(1)
+    
     print(f"\nParameters:")
     print(f"  Input file: {input_file}")
     print(f"  Output file: {output_file}")
