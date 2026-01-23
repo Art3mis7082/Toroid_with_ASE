@@ -283,11 +283,11 @@ def remove_duplicate_atoms(symbols, positions, overlap_tolerance):
     print(f"  Atoms before removal: {len(temp_atoms)}")
     print(f"  Overlap tolerance: {overlap_tolerance:.3f} Å")
     
-    # Build neighbor list with natural cutoffs scaled by a factor
-    # We use a custom cutoff based on overlap_tolerance
+    # Build neighbor list with cutoff based on overlap_tolerance
+    # This ensures we find all atom pairs within the overlap distance
     try:
-        # Use natural cutoffs as a baseline but scale them
-        cutoffs = natural_cutoffs(temp_atoms, mult=0.5)
+        # Create uniform cutoffs based on overlap_tolerance for all atoms
+        cutoffs = [overlap_tolerance / 2.0] * len(temp_atoms)
         nl = build_neighbor_list(temp_atoms, cutoffs=cutoffs, skin=0.0)
         
         # Find atoms that are too close (duplicates)
