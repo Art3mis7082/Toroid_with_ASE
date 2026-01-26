@@ -37,6 +37,43 @@ pip install ase numpy
 
 ## Usage
 
+### Using Configuration File
+
+The easiest way to customize parameters is through a configuration file:
+
+1. Edit `toroid_config.ini` to set your desired parameters:
+```ini
+[geometry]
+R_target = 8.0
+r_cyl = 4.0
+overlap_tolerance = 1.0
+
+[input_output]
+input_file = my_structure.cif
+output_file = my_toroid.xyz
+
+[relaxation]
+enable_prerelax = true
+lj_epsilon = 0.002
+lj_sigma = 2.5
+prerelax_steps = 200
+```
+
+2. Run the generator:
+```bash
+python toroid_generator.py
+```
+
+You can override config file settings with command-line arguments:
+```bash
+python toroid_generator.py --R_target 10.0 --prerelax
+```
+
+Or use a different config file:
+```bash
+python toroid_generator.py --config my_config.ini
+```
+
 ### Basic Usage
 
 Generate a toroid from a CIF file with default parameters:
@@ -77,15 +114,16 @@ python toroid_generator.py \
 
 | Argument | Short | Default | Description |
 |----------|-------|---------|-------------|
-| `--input` | `-i` | `Li2O2.cif` | Input CIF file with unit cell structure |
-| `--output` | `-o` | `toroid_output.xyz` | Output XYZ file for generated toroid |
-| `--R_target` | `-R` | `6.0` | Major radius of toroid in Å |
-| `--r_cyl` | `-r` | `2.5` | Minor radius (tube radius) in Å |
-| `--overlap_tolerance` | `-t` | `1.0` | Distance threshold for duplicate removal in Å |
-| `--prerelax` | | `False` | Enable pre-relaxation with Lennard-Jones |
-| `--lj_epsilon` | | `0.002` | LJ epsilon parameter in eV |
-| `--lj_sigma` | | `2.5` | LJ sigma parameter in Å |
-| `--prerelax_steps` | | `200` | Maximum steps for pre-relaxation |
+| `--config` | `-c` | `toroid_config.ini` | Configuration file path |
+| `--input` | `-i` | From config | Input CIF file with unit cell structure |
+| `--output` | `-o` | From config | Output XYZ file for generated toroid |
+| `--R_target` | `-R` | From config | Major radius of toroid in Å |
+| `--r_cyl` | `-r` | From config | Minor radius (tube radius) in Å |
+| `--overlap_tolerance` | `-t` | From config | Distance threshold for duplicate removal in Å |
+| `--prerelax` | | From config | Enable pre-relaxation with Lennard-Jones |
+| `--lj_epsilon` | | From config | LJ epsilon parameter in eV |
+| `--lj_sigma` | | From config | LJ sigma parameter in Å |
+| `--prerelax_steps` | | From config | Maximum steps for pre-relaxation |
 
 ## How It Works
 
@@ -168,6 +206,67 @@ toroid = remove_duplicate_atoms(toroid_symbols, toroid_positions, 1.0)
 # Optional: apply custom post-processing here
 toroid = prerelax_structure(toroid, 0.002, 2.5, 200)
 ```
+
+## API Reference
+
+### Core Functions (`toroid_core.py`)
+
+#### `read_unit_cell(input_file)`
+Read and prepare unit cell from CIF file.
+- **Parameters**: `input_file` (str) - Path to CIF file
+- **Returns**: `(atoms, (a_x, a_y, a_z))` - ASE Atoms object and lattice parameters
+
+#### `create_cylinder_block(atoms0, a_x, a_y, a_z, L_target, r_cyl, overlap_tolerance)`
+Create supercell block for cylinder generation.
+- **Parameters**: 
+  - `atoms0` - Unit cell structure
+  - `a_x, a_y, a_z` - Lattice parameters [Å]
+  - `L_target` - Target circumference (2π*R) [Å]
+  - `r_cyl` - Cylinder radius [Å]
+  - `overlap_tolerance` - Overlap zone width [Å]
+- **Returns**: Supercell block structure
+
+#### `extract_cylinder(block, r_cyl)`
+Extract atoms within cylindrical radius from block.
+- **Parameters**: 
+  - `block` - Supercell block
+  - `r_cyl` - Cylinder radius [Å]
+- **Returns**: `(symbols, positions)` - Chemical symbols and atomic positions
+
+#### `map_cylinder_to_toroid(cyl_symbols, cyl_positions, R_target, r_cyl, L_target, overlap_tolerance)`
+Map cylindrical coordinates to toroidal geometry using parametric equations:
+- X = (R + r*cos(φ)) * cos(θ)
+- Y = (R + r*cos(φ)) * sin(θ)
+- Z = r * sin(φ)
+
+**Parameters**: 
+- `cyl_symbols, cyl_positions` - Cylinder atoms
+- `R_target` - Major radius [Å]
+- `r_cyl` - Minor radius [Å]
+- `L_target` - Target circumference [Å]
+- `overlap_tolerance` - Overlap zone width [Å]
+
+**Returns**: `(symbols, positions)` - Toroid atoms
+
+#### `remove_duplicate_atoms(symbols, positions, overlap_tolerance)`
+Remove duplicate atoms at toroid seam using neighbor list detection.
+- **Parameters**: 
+  - `symbols` - Chemical symbols
+  - `positions` - Atomic positions
+  - `overlap_tolerance` - Distance threshold for duplicates [Å]
+- **Returns**: ASE Atoms object with duplicates removed
+
+### Relaxation Functions (`toroid_relaxation.py`)
+
+#### `prerelax_structure(atoms, epsilon, sigma, max_steps)`
+Pre-relax structure using Lennard-Jones potential to remove atomic clashes.
+- **Parameters**: 
+  - `atoms` - Structure to relax
+  - `epsilon` - LJ epsilon parameter [eV]
+  - `sigma` - LJ sigma parameter [Å]
+  - `max_steps` - Maximum optimization steps
+- **Returns**: Relaxed structure
+- **Note**: This is NOT chemically accurate; use DFT/MD for accurate simulations
 
 ## Contributing
 

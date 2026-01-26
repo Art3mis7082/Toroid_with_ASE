@@ -34,6 +34,8 @@ import numpy as np
 from ase.io import write
 import argparse
 import sys
+import configparser
+import os
 
 # Import core functionality from modular components
 from toroid_core import (
@@ -46,43 +48,117 @@ from toroid_core import (
 from toroid_relaxation import prerelax_structure
 
 
-def parse_arguments():
+def load_config(config_file='toroid_config.ini'):
     """
-    Parse command-line arguments for toroid generation parameters.
+    Load configuration from INI file.
+    
+    Parameters:
+        config_file (str): Path to configuration file
     
     Returns:
-        argparse.Namespace: Parsed arguments with all parameters
+        dict: Configuration parameters
     """
+    config = configparser.ConfigParser()
+    defaults = {
+        'R_target': 6.0,
+        'r_cyl': 2.5,
+        'overlap_tolerance': 1.0,
+        'input_file': 'Li2O2.cif',
+        'output_file': 'toroid_output.xyz',
+        'enable_prerelax': False,
+        'lj_epsilon': 0.002,
+        'lj_sigma': 2.5,
+        'prerelax_steps': 200
+    }
+    
+    if os.path.exists(config_file):
+        config.read(config_file)
+        
+        # Parse geometry section
+        if 'geometry' in config:
+            defaults['R_target'] = config.getfloat('geometry', 'R_target', fallback=defaults['R_target'])
+            defaults['r_cyl'] = config.getfloat('geometry', 'r_cyl', fallback=defaults['r_cyl'])
+            defaults['overlap_tolerance'] = config.getfloat('geometry', 'overlap_tolerance', fallback=defaults['overlap_tolerance'])
+        
+        # Parse input_output section
+        if 'input_output' in config:
+            defaults['input_file'] = config.get('input_output', 'input_file', fallback=defaults['input_file'])
+            defaults['output_file'] = config.get('input_output', 'output_file', fallback=defaults['output_file'])
+        
+        # Parse relaxation section
+        if 'relaxation' in config:
+            defaults['enable_prerelax'] = config.getboolean('relaxation', 'enable_prerelax', fallback=defaults['enable_prerelax'])
+            defaults['lj_epsilon'] = config.getfloat('relaxation', 'lj_epsilon', fallback=defaults['lj_epsilon'])
+            defaults['lj_sigma'] = config.getfloat('relaxation', 'lj_sigma', fallback=defaults['lj_sigma'])
+            defaults['prerelax_steps'] = config.getint('relaxation', 'prerelax_steps', fallback=defaults['prerelax_steps'])
+    
+    return defaults
+
+
+def parse_arguments():
+    """Parse command-line arguments."""
+    # Load config file first to get defaults
+    config = load_config()
+    
     parser = argparse.ArgumentParser(
         description='Generate toroid structures from crystalline unit cells',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   %(prog)s --input Li2O2.cif --output toroid.xyz --R_target 6.0 --r_cyl 2.5
+  %(prog)s --config my_config.ini
   %(prog)s --input structure.cif --R_target 8.0 --r_cyl 4.0 --prerelax
         """
     )
     
-    parser.add_argument('--input', '-i', type=str, default='Li2O2.cif',
-                        help='Input CIF file with unit cell structure (default: Li2O2.cif)')
-    parser.add_argument('--output', '-o', type=str, default='toroid_output.xyz',
-                        help='Output XYZ file for generated toroid (default: toroid_output.xyz)')
-    parser.add_argument('--R_target', '-R', type=float, default=6.0,
-                        help='Major radius of toroid in Å (default: 6.0)')
-    parser.add_argument('--r_cyl', '-r', type=float, default=2.5,
-                        help='Minor radius (cylinder/tube radius) in Å (default: 2.5)')
-    parser.add_argument('--overlap_tolerance', '-t', type=float, default=1.0,
-                        help='Distance threshold for duplicate removal in Å (default: 1.0)')
-    parser.add_argument('--prerelax', action='store_true',
-                        help='Enable pre-relaxation with Lennard-Jones potential')
-    parser.add_argument('--lj_epsilon', type=float, default=0.002,
-                        help='LJ epsilon parameter in eV (default: 0.002)')
-    parser.add_argument('--lj_sigma', type=float, default=2.5,
-                        help='LJ sigma parameter in Å (default: 2.5)')
-    parser.add_argument('--prerelax_steps', type=int, default=200,
-                        help='Maximum steps for pre-relaxation (default: 200)')
+    parser.add_argument('--config', '-c', type=str, default='toroid_config.ini',
+                        help='Configuration file (default: toroid_config.ini)')
+    parser.add_argument('--input', '-i', type=str, default=None,
+                        help=f'Input CIF file (default from config: {config["input_file"]})')
+    parser.add_argument('--output', '-o', type=str, default=None,
+                        help=f'Output XYZ file (default from config: {config["output_file"]})')
+    parser.add_argument('--R_target', '-R', type=float, default=None,
+                        help=f'Major radius in Å (default from config: {config["R_target"]})')
+    parser.add_argument('--r_cyl', '-r', type=float, default=None,
+                        help=f'Minor radius in Å (default from config: {config["r_cyl"]})')
+    parser.add_argument('--overlap_tolerance', '-t', type=float, default=None,
+                        help=f'Overlap tolerance in Å (default from config: {config["overlap_tolerance"]})')
+    parser.add_argument('--prerelax', action='store_true', default=None,
+                        help=f'Enable pre-relaxation (default from config: {config["enable_prerelax"]})')
+    parser.add_argument('--lj_epsilon', type=float, default=None,
+                        help=f'LJ epsilon in eV (default from config: {config["lj_epsilon"]})')
+    parser.add_argument('--lj_sigma', type=float, default=None,
+                        help=f'LJ sigma in Å (default from config: {config["lj_sigma"]})')
+    parser.add_argument('--prerelax_steps', type=int, default=None,
+                        help=f'Max relaxation steps (default from config: {config["prerelax_steps"]})')
     
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    # Reload config if a different config file was specified
+    if args.config != 'toroid_config.ini':
+        config = load_config(args.config)
+    
+    # Override config with command-line arguments (if provided)
+    if args.input is not None:
+        config['input_file'] = args.input
+    if args.output is not None:
+        config['output_file'] = args.output
+    if args.R_target is not None:
+        config['R_target'] = args.R_target
+    if args.r_cyl is not None:
+        config['r_cyl'] = args.r_cyl
+    if args.overlap_tolerance is not None:
+        config['overlap_tolerance'] = args.overlap_tolerance
+    if args.prerelax is not None:
+        config['enable_prerelax'] = args.prerelax
+    if args.lj_epsilon is not None:
+        config['lj_epsilon'] = args.lj_epsilon
+    if args.lj_sigma is not None:
+        config['lj_sigma'] = args.lj_sigma
+    if args.prerelax_steps is not None:
+        config['prerelax_steps'] = args.prerelax_steps
+    
+    return config
 
 
 def generate_toroid(input_file='Li2O2.cif', 
@@ -170,18 +246,18 @@ def generate_toroid(input_file='Li2O2.cif',
 
 def main():
     """Main entry point for command-line usage."""
-    args = parse_arguments()
+    config = parse_arguments()
     
     generate_toroid(
-        input_file=args.input,
-        output_file=args.output,
-        R_target=args.R_target,
-        r_cyl=args.r_cyl,
-        overlap_tolerance=args.overlap_tolerance,
-        do_prerelax=args.prerelax,
-        lj_epsilon=args.lj_epsilon,
-        lj_sigma=args.lj_sigma,
-        prerelax_steps=args.prerelax_steps
+        input_file=config['input_file'],
+        output_file=config['output_file'],
+        R_target=config['R_target'],
+        r_cyl=config['r_cyl'],
+        overlap_tolerance=config['overlap_tolerance'],
+        do_prerelax=config['enable_prerelax'],
+        lj_epsilon=config['lj_epsilon'],
+        lj_sigma=config['lj_sigma'],
+        prerelax_steps=config['prerelax_steps']
     )
 
 
