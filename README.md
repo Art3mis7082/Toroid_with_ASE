@@ -168,7 +168,6 @@ toroid = remove_duplicate_atoms(toroid_symbols, toroid_positions, 1.0)
 # Optional: apply custom post-processing here
 toroid = prerelax_structure(toroid, 0.002, 2.5, 200)
 ```
-```
 
 ## Contributing
 
