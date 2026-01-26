@@ -2,11 +2,11 @@
 Core functions for toroid generation from crystalline unit cells.
 
 This module contains the fundamental operations for creating toroid structures:
-- Reading and preparing unit cells
-- Creating supercell blocks
-- Extracting cylindrical structures
-- Mapping cylinders to toroid geometry
-- Removing duplicate atoms at seams
+- Read and prepare unit cells
+- Create supercell blocks
+- Extract cylindrical structures
+- Map cylinders to toroid geometry
+- Remove duplicate atoms at seams
 
 Author: Consolidated from multiple versions
 Date: 2026-01-23
