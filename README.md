@@ -4,12 +4,18 @@ Advanced script for generating toroid (doughnut-shaped) structures from crystall
 
 ## Overview
 
-This repository provides a consolidated, well-documented solution for creating toroid nanostructures from periodic crystal structures. The script combines the best features from multiple previous versions and implements advanced duplicate removal using neighbor list detection.
+This repository provides a consolidated, well-documented solution for creating toroid nanostructures from periodic crystal structures. The implementation uses a modular architecture with separate components for core functionality, relaxation, and command-line interface.
+
+### Module Structure
+
+- **`toroid_core.py`**: Core functions for toroid generation (unit cell loading, supercell creation, cylinder extraction, toroid mapping, duplicate removal)
+- **`toroid_relaxation.py`**: Pre-relaxation functionality using Lennard-Jones potential
+- **`toroid_generator.py`**: Main script with command-line interface and workflow orchestration
 
 ## Features
 
 - **Modular Architecture**: Clean separation of concerns with dedicated functions for each step
-- **Flexible Parameters**: Customizable major/minor radii, overlap tolerance, and more
+- **Flexible Parameters**: Customizable major/minor radius, overlap tolerance, and more
 - **Advanced Duplicate Removal**: Uses ASE neighbor list for precise seam closure
 - **Optional Pre-relaxation**: Lennard-Jones potential to remove atomic clashes
 - **Geometric Perfection**: Ensures proper closure using L_target for mapping
@@ -110,7 +116,9 @@ where θ is the angle around the major circle and φ is the angle around the min
 
 ## Using as a Python Module
 
-You can also import and use the functions in your own Python scripts:
+You can import and use the functions in your own Python scripts:
+
+### High-level Interface
 
 ```python
 from toroid_generator import generate_toroid
@@ -129,15 +137,38 @@ toroid = generate_toroid(
 print(f"Generated toroid with {len(toroid)} atoms")
 ```
 
-## Legacy Scripts
+### Low-level Interface
 
-This repository also contains the original scripts that were consolidated:
+For more control, use the core functions directly:
 
-- `Toroide.py` - Original version with simple seam padding
-- `Toroide_R6_r2.5_New.py` - Version with improved geometric closure
-- `Toroide_R6_r2.5_corregido_Version3.py` - Version with neighbor list duplicate removal
+```python
+from toroid_core import (
+    read_unit_cell,
+    create_cylinder_block,
+    extract_cylinder,
+    map_cylinder_to_toroid,
+    remove_duplicate_atoms
+)
+from toroid_relaxation import prerelax_structure
+import numpy as np
 
-The new `toroid_generator.py` combines the best features from all three versions.
+# Step-by-step generation with custom processing
+atoms0, (a_x, a_y, a_z) = read_unit_cell('structure.cif')
+R_target = 6.0
+r_cyl = 2.5
+L_target = 2.0 * np.pi * R_target
+
+block = create_cylinder_block(atoms0, a_x, a_y, a_z, L_target, r_cyl, 1.0)
+cyl_symbols, cyl_positions = extract_cylinder(block, r_cyl)
+toroid_symbols, toroid_positions = map_cylinder_to_toroid(
+    cyl_symbols, cyl_positions, R_target, r_cyl, L_target, 1.0
+)
+toroid = remove_duplicate_atoms(toroid_symbols, toroid_positions, 1.0)
+
+# Optional: apply custom post-processing here
+toroid = prerelax_structure(toroid, 0.002, 2.5, 200)
+```
+```
 
 ## Contributing
 
