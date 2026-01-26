@@ -97,9 +97,7 @@ def load_config(config_file='toroid_config.ini'):
 
 def parse_arguments():
     """Parse command-line arguments."""
-    # Load config file first to get defaults
-    config = load_config()
-    
+    # First pass to get config file path
     parser = argparse.ArgumentParser(
         description='Generate toroid structures from crystalline unit cells',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -114,29 +112,28 @@ Examples:
     parser.add_argument('--config', '-c', type=str, default='toroid_config.ini',
                         help='Configuration file (default: toroid_config.ini)')
     parser.add_argument('--input', '-i', type=str, default=None,
-                        help=f'Input CIF file (default from config: {config["input_file"]})')
+                        help='Input CIF file (overrides config)')
     parser.add_argument('--output', '-o', type=str, default=None,
-                        help=f'Output XYZ file (default from config: {config["output_file"]})')
+                        help='Output XYZ file (overrides config)')
     parser.add_argument('--R_target', '-R', type=float, default=None,
-                        help=f'Major radius in Å (default from config: {config["R_target"]})')
+                        help='Major radius in Å (overrides config)')
     parser.add_argument('--r_cyl', '-r', type=float, default=None,
-                        help=f'Minor radius in Å (default from config: {config["r_cyl"]})')
+                        help='Minor radius in Å (overrides config)')
     parser.add_argument('--overlap_tolerance', '-t', type=float, default=None,
-                        help=f'Overlap tolerance in Å (default from config: {config["overlap_tolerance"]})')
-    parser.add_argument('--prerelax', action='store_true', default=None,
-                        help=f'Enable pre-relaxation (default from config: {config["enable_prerelax"]})')
+                        help='Overlap tolerance in Å (overrides config)')
+    parser.add_argument('--prerelax', action='store_true',
+                        help='Enable pre-relaxation (overrides config)')
     parser.add_argument('--lj_epsilon', type=float, default=None,
-                        help=f'LJ epsilon in eV (default from config: {config["lj_epsilon"]})')
+                        help='LJ epsilon in eV (overrides config)')
     parser.add_argument('--lj_sigma', type=float, default=None,
-                        help=f'LJ sigma in Å (default from config: {config["lj_sigma"]})')
+                        help='LJ sigma in Å (overrides config)')
     parser.add_argument('--prerelax_steps', type=int, default=None,
-                        help=f'Max relaxation steps (default from config: {config["prerelax_steps"]})')
+                        help='Max relaxation steps (overrides config)')
     
     args = parser.parse_args()
     
-    # Reload config if a different config file was specified
-    if args.config != 'toroid_config.ini':
-        config = load_config(args.config)
+    # Load config file
+    config = load_config(args.config)
     
     # Override config with command-line arguments (if provided)
     if args.input is not None:
@@ -149,8 +146,8 @@ Examples:
         config['r_cyl'] = args.r_cyl
     if args.overlap_tolerance is not None:
         config['overlap_tolerance'] = args.overlap_tolerance
-    if args.prerelax is not None:
-        config['enable_prerelax'] = args.prerelax
+    if args.prerelax:
+        config['enable_prerelax'] = True
     if args.lj_epsilon is not None:
         config['lj_epsilon'] = args.lj_epsilon
     if args.lj_sigma is not None:
