@@ -279,3 +279,20 @@ See LICENSE file for details.
 ## Citation
 
 If you use this code in your research, please cite appropriately. 
+
+This code is implemented with Atomic Simulation Enviroment (ASE) with the following cite:
+    - Ask Hjorth Larsen, Jens Jørgen Mortensen, Jakob Blomqvist,
+Ivano E. Castelli, Rune Christensen, Marcin Dułak, Jesper Friis,
+Michael N. Groves, Bjørk Hammer, Cory Hargus, Eric D. Hermes,
+Paul C. Jennings, Peter Bjerre Jensen, James Kermode, John R. Kitchin,
+Esben Leonhard Kolsbjerg, Joseph Kubal, Kristen Kaasbjerg,
+Steen Lysgaard, Jón Bergmann Maronsson, Tristan Maxson, Thomas Olsen,
+Lars Pastewka, Andrew Peterson, Carsten Rostgaard, Jakob Schiøtz,
+Ole Schütt, Mikkel Strange, Kristian S. Thygesen, Tejs Vegge,
+Lasse Vilhelmsen, Michael Walter, Zhenhua Zeng, Karsten Wedel Jacobsen
+The Atomic Simulation Environment—A Python library for working with atoms
+J. Phys.: Condens. Matter Vol. 29 273002, 2017
+
+    - A.   Jain, S.P. Ong, G. Hautier, W. Chen, W.D. Richards, S. Dacek, S. Cholia, D. Gunter, D. Skinner, G. Ceder, K.A. Persson, 
+    The Materials Project: A materials genome approach to accelerating materials innovation. APL Materials, 2013, 1(1), 011002. DOI: 10.17188/1272612
+
