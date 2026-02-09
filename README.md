@@ -290,6 +290,8 @@ This code is implemented with Atomic Simulation Enviroment (ASE) with the follow
     The Atomic Simulation Environment—A Python library for working with atoms
     J. Phys.: Condens. Matter Vol. 29 273002, 2017
 
+And the examples provided for generating crystal structures with the following cite:
+
     - A.   Jain, S.P. Ong, G. Hautier, W. Chen, W.D. Richards, S. Dacek, S. Cholia, D. Gunter, D. Skinner, G. Ceder, K.A. Persson, 
     The Materials Project: A materials genome approach to accelerating materials innovation. APL Materials, 2013, 1(1), 011002. DOI: 10.17188/1272612
 
